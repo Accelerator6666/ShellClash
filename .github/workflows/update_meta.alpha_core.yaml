@@ -23,7 +23,20 @@ jobs:
     - name: Download Core
       run: |
         if [ "${download_tag}" = "Prerelease-Alpha" ] || [ "${download_tag}" = "Prerelease-Beta" ];then
-          download_version=$(curl -sL https://api.github.com/repos/MetaCubeX/mihomo/releases/tags/${download_tag} | grep linux-arm64 | head -n 1 | sed 's_.gz.*__;s_.*arm64-__')
+          asset_name=$(curl -fsSL "https://api.github.com/repos/MetaCubeX/mihomo/releases/tags/${download_tag}" \
+            | jq -r '.assets[].name | select(startswith("mihomo-linux-arm64-") and endswith(".gz"))' \
+            | head -n 1)
+
+          if [ -z "${asset_name}" ] || [ "${asset_name}" = "null" ]; then
+            echo "ERROR: mihomo linux arm64 gzip asset not found"
+            exit 1
+          fi
+
+          download_version="${asset_name#mihomo-linux-arm64-}"
+          download_version="${download_version%.gz}"
+
+          echo "Detected asset: ${asset_name}"
+          echo "Detected version: ${download_version}"
         else
           download_version=${download_tag}
         fi
